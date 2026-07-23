@@ -6,31 +6,14 @@ import { useResizeWindow } from "~/hooks/useResizeWindow";
 export function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
-  const axesHelperRef = useRef<THREE.AxesHelper>(null);
 
   useEffect(() => {
-    // initialize the camera
-    /**
-      --- ORTOGRAPHIC CAMERA
-      const camera = new THREE.OrthographicCamera(
-        -1 * window.innerWidth / window.innerHeight,
-        1,
-        1,
-        -1,
-        0.1,
-        200,
-      );
-    */
-
-    // --- PERSPECTIVE CAMERA
     cameraRef.current = new THREE.PerspectiveCamera(
-      35, // FOV -> più vicino allo 0, più la camera è vicina alla mesh
-      innerWidth / innerHeight, // Aspect Ratio
-      0.5, // NEAR -> indica entro quanto puoi vedere la mesh. 0.05, Three.js non usa numeri dopo il decimale
-      30, // FAR
+      35,
+      innerWidth / innerHeight,
+      0.5,
+      30,
     );
-
-    axesHelperRef.current = new THREE.AxesHelper(2);
   }, []);
 
   useEffect(() => {
@@ -39,10 +22,8 @@ export function HomePage() {
     const canvas = canvasRef.current;
     const camera = cameraRef.current;
 
-    // initialize the scene
     const scene = new THREE.Scene();
 
-    // add objects to the scene
     const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
     const cubeMaterial = new THREE.MeshBasicMaterial({
       color: "purple",
@@ -50,39 +31,41 @@ export function HomePage() {
     });
     const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
 
-    scene.add(cubeMesh);
+    const cubeMesh2 = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cubeMesh2.position.x = 2;
 
-    const tempVector = new THREE.Vector3(0, 0, 0);
-    cubeMesh.position.copy(tempVector);
+    const cubeMesh3 = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cubeMesh3.position.x = -2;
 
-    if (!axesHelperRef.current) return;
-    scene.add(axesHelperRef.current);
+    // group
+    const group = new THREE.Group();
+    group.add(cubeMesh);
+    group.add(cubeMesh2);
+    group.add(cubeMesh3);
+
+    group.position.y = 2;
+    group.scale.setScalar(2);
+
+    scene.add(group);
 
     if (!camera) return;
     camera.position.z = 5;
 
-    // calcolo distanza mesh da camera
-    console.log(cubeMesh.position.distanceTo(camera.position));
-
-    // initialize the renderer
     const renderer = new THREE.WebGLRenderer({
       canvas: canvas,
     });
 
-    // instantiate the controls
     const controls = new OrbitControls(camera, canvas);
-    controls.enableDamping = true; // Dumping -> permette di avere delle rotazioni fluide quando si ruota la camera
-    controls.autoRotate = false; // true
+    controls.enableDamping = true;
+    controls.autoRotate = false;
 
-    // render the scene
     const renderloop = () => {
       renderer.setSize(innerWidth, innerHeight);
 
-      // Anti-Alising
-      const maxPixelRatio = Math.min(devicePixelRatio, 2); // Se PixelRatio è >=3, fissa il maxPixelRatio a 2
+      const maxPixelRatio = Math.min(devicePixelRatio, 2);
       renderer.setPixelRatio(maxPixelRatio);
 
-      controls.update(); // Serve se controls.enableDamping = true o quando controls.autoRotate = true
+      controls.update();
       renderer.render(scene, camera);
       window.requestAnimationFrame(renderloop);
     };
@@ -97,7 +80,7 @@ export function HomePage() {
   useResizeWindow(({ width = innerWidth, height = innerHeight }) => {
     if (!cameraRef.current) return;
     cameraRef.current.aspect = width / height;
-    cameraRef.current.updateProjectionMatrix(); // Va chiamata quando si vuole aggiornare dei valori della camera
+    cameraRef.current.updateProjectionMatrix();
   });
 
   return (

@@ -9,25 +9,11 @@ export function HomePage() {
   const axesHelperRef = useRef<THREE.AxesHelper>(null);
 
   useEffect(() => {
-    // initialize the camera
-    /**
-      --- ORTOGRAPHIC CAMERA
-      const camera = new THREE.OrthographicCamera(
-        -1 * window.innerWidth / window.innerHeight,
-        1,
-        1,
-        -1,
-        0.1,
-        200,
-      );
-    */
-
-    // --- PERSPECTIVE CAMERA
     cameraRef.current = new THREE.PerspectiveCamera(
-      35, // FOV -> più vicino allo 0, più la camera è vicina alla mesh
-      innerWidth / innerHeight, // Aspect Ratio
-      0.5, // NEAR -> indica entro quanto puoi vedere la mesh. 0.05, Three.js non usa numeri dopo il decimale
-      30, // FAR
+      35,
+      innerWidth / innerHeight,
+      0.5,
+      30,
     );
 
     axesHelperRef.current = new THREE.AxesHelper(2);
@@ -39,19 +25,23 @@ export function HomePage() {
     const canvas = canvasRef.current;
     const camera = cameraRef.current;
 
-    // initialize the scene
     const scene = new THREE.Scene();
 
-    // add objects to the scene
     const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
     const cubeMaterial = new THREE.MeshBasicMaterial({
       color: "purple",
       wireframe: true,
     });
     const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cubeMesh.position.y = 1;
+    cubeMesh.position.x = 1;
 
     scene.add(cubeMesh);
 
+    /* 
+      al posto di andare a modificare la posizione nei singoli assi, 
+      si possono usare i vettori per posizionare la mesh nel piano 
+    */
     const tempVector = new THREE.Vector3(0, 0, 0);
     cubeMesh.position.copy(tempVector);
 
@@ -61,28 +51,21 @@ export function HomePage() {
     if (!camera) return;
     camera.position.z = 5;
 
-    // calcolo distanza mesh da camera
-    console.log(cubeMesh.position.distanceTo(camera.position));
-
-    // initialize the renderer
     const renderer = new THREE.WebGLRenderer({
       canvas: canvas,
     });
 
-    // instantiate the controls
     const controls = new OrbitControls(camera, canvas);
-    controls.enableDamping = true; // Dumping -> permette di avere delle rotazioni fluide quando si ruota la camera
-    controls.autoRotate = false; // true
+    controls.enableDamping = true;
+    controls.autoRotate = false;
 
-    // render the scene
     const renderloop = () => {
       renderer.setSize(innerWidth, innerHeight);
 
-      // Anti-Alising
-      const maxPixelRatio = Math.min(devicePixelRatio, 2); // Se PixelRatio è >=3, fissa il maxPixelRatio a 2
+      const maxPixelRatio = Math.min(devicePixelRatio, 2);
       renderer.setPixelRatio(maxPixelRatio);
 
-      controls.update(); // Serve se controls.enableDamping = true o quando controls.autoRotate = true
+      controls.update();
       renderer.render(scene, camera);
       window.requestAnimationFrame(renderloop);
     };
@@ -97,7 +80,7 @@ export function HomePage() {
   useResizeWindow(({ width = innerWidth, height = innerHeight }) => {
     if (!cameraRef.current) return;
     cameraRef.current.aspect = width / height;
-    cameraRef.current.updateProjectionMatrix(); // Va chiamata quando si vuole aggiornare dei valori della camera
+    cameraRef.current.updateProjectionMatrix();
   });
 
   return (
