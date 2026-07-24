@@ -34,12 +34,10 @@ export function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!canvasRef.current || !cameraRef.current || !rendererRef.current)
-      return;
+    if (!canvasRef.current || !cameraRef.current) return;
 
     const canvas = canvasRef.current;
     const camera = cameraRef.current;
-    const renderer = rendererRef.current;
 
     // initialize the scene
     const scene = new THREE.Scene();
