@@ -8,6 +8,7 @@ import { useResizeWindow } from "~/hooks/useResizeWindow";
 export function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer>(null);
 
   useEffect(() => {
     // initialize the camera
@@ -30,13 +31,21 @@ export function HomePage() {
       0.5, // NEAR -> indica entro quanto puoi vedere la mesh. 0.05, Three.js non usa numeri dopo il decimale
       30, // FAR
     );
+
+    // initialize the renderer
+    if (canvasRef.current)
+      rendererRef.current = new THREE.WebGLRenderer({
+        canvas: canvasRef.current,
+      });
   }, []);
 
   useEffect(() => {
-    if (!canvasRef.current || !cameraRef.current) return;
+    if (!canvasRef.current || !cameraRef.current || !rendererRef.current)
+      return;
 
     const canvas = canvasRef.current;
     const camera = cameraRef.current;
+    const renderer = rendererRef.current;
 
     // initialize the scene
     const scene = new THREE.Scene();
@@ -50,11 +59,6 @@ export function HomePage() {
 
     if (!camera) return;
     camera.position.z = 5;
-
-    // initialize the renderer
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvas,
-    });
 
     // instantiate the controls
     const controls = new OrbitControls(camera, canvas);
