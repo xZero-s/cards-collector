@@ -7,31 +7,14 @@ import { Pane } from "tweakpane";
 export function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
-  const axesHelperRef = useRef<THREE.AxesHelper>(null);
 
   useEffect(() => {
-    // initialize the camera
-    /**
-      --- ORTOGRAPHIC CAMERA
-      const camera = new THREE.OrthographicCamera(
-        -1 * window.innerWidth / window.innerHeight,
-        1,
-        1,
-        -1,
-        0.1,
-        200,
-      );
-    */
-
-    // --- PERSPECTIVE CAMERA
     cameraRef.current = new THREE.PerspectiveCamera(
-      35, // FOV -> più vicino allo 0, più la camera è vicina alla mesh
-      innerWidth / innerHeight, // Aspect Ratio
-      0.5, // NEAR -> indica entro quanto puoi vedere la mesh. 0.05, Three.js non usa numeri dopo il decimale
-      30, // FAR
+      35,
+      innerWidth / innerHeight,
+      0.5,
+      30,
     );
-
-    axesHelperRef.current = new THREE.AxesHelper(2);
   }, []);
 
   useEffect(() => {
@@ -43,14 +26,57 @@ export function HomePage() {
     // initialize the pane
     const pane = new Pane();
 
-    // initialize the scene
     const scene = new THREE.Scene();
 
-    // initialize the geometry
     const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
     const torusKnotGeometry = new THREE.TorusKnotGeometry(0.5, 0.15, 100, 16);
     const planeGeometry = new THREE.PlaneGeometry(1, 1);
 
+    // initialize material
+    /* --- Mesh Basic Material + FOG ---
+    const material = new THREE.MeshBasicMaterial();
+    material.color = new THREE.Color(0x00ff00);
+    material.transparent = true;
+    material.opacity = 0.5;
+    material.side = THREE.DoubleSide; // Se vogliamo vedere entrambi i lati di un plane, THREE.FrontSide solo per il fronte
+    material.fog = true; // True di default
+
+    // initialize fog
+    const fog = new THREE.Fog(0xffffff, 1, 10);
+    scene.fog = fog;
+    scene.background = new THREE.Color(0xffffff); // Per funzionare bene, lo sfondo deve essere dello stesso colore del fog */
+
+    // --- Mesh Lambert Material ---
+    // const material = new THREE.MeshLambertMaterial();
+
+    /* --- Mesh Phong Material ---
+    const material = new THREE.MeshPhongMaterial();
+    material.shininess = 50;
+    material.color = new THREE.Color("red");
+
+    pane.addBinding(material, "shininess", {
+      min: 0,
+      max: 100,
+      step: 1,
+    });*/
+
+    /* --- Mesh Standard Material ---
+    const material = new THREE.MeshStandardMaterial();
+    material.color = new THREE.Color("green");
+
+    pane.addBinding(material, "metalness", {
+      min: 0,
+      max: 1,
+      step: 0.01,
+    });
+
+    pane.addBinding(material, "roughness", {
+      min: 0,
+      max: 1,
+      step: 0.01,
+    });*/
+
+    // --- Mesh Physical Material ---
     const material = new THREE.MeshPhysicalMaterial();
     material.color = new THREE.Color("green");
 
@@ -92,44 +118,32 @@ export function HomePage() {
     scene.add(plane);
 
     // initialize the light
-    const light = new THREE.AmbientLight(0xffffff, 0.4);
+    const light = new THREE.AmbientLight(0xffffff, 0.2);
     scene.add(light);
 
-    const pointLight = new THREE.PointLight(0xffffff, 0.9);
+    const pointLight = new THREE.PointLight(0xffffff, 0.3);
     pointLight.position.set(1, 1, 1);
     scene.add(pointLight);
-
-    const tempVector = new THREE.Vector3(0, 0, 0);
-    cubeMesh.position.copy(tempVector);
-
-    if (!axesHelperRef.current) return;
-    scene.add(axesHelperRef.current);
 
     if (!camera) return;
     camera.position.z = 5;
 
-    // calcolo distanza mesh da camera
-    console.log(cubeMesh.position.distanceTo(camera.position));
-
-    // initialize the renderer
     const renderer = new THREE.WebGLRenderer({
       canvas: canvas,
     });
 
-    // instantiate the controls
     const controls = new OrbitControls(camera, canvas);
-    controls.enableDamping = true; // Dumping -> permette di avere delle rotazioni fluide quando si ruota la camera
+    controls.enableDamping = true;
     // controls.autoRotate = true;
 
-    // render the scene
     const renderloop = () => {
       renderer.setSize(innerWidth, innerHeight);
 
       // Anti-Alising
-      const maxPixelRatio = Math.min(devicePixelRatio, 2); // Se PixelRatio è >=3, fissa il maxPixelRatio a 2
+      const maxPixelRatio = Math.min(devicePixelRatio, 2);
       renderer.setPixelRatio(maxPixelRatio);
 
-      controls.update(); // Serve se controls.enableDamping = true o quando controls.autoRotate = true
+      controls.update();
       renderer.render(scene, camera);
       window.requestAnimationFrame(renderloop);
     };
@@ -144,7 +158,7 @@ export function HomePage() {
   useResizeWindow(({ width = innerWidth, height = innerHeight }) => {
     if (!cameraRef.current) return;
     cameraRef.current.aspect = width / height;
-    cameraRef.current.updateProjectionMatrix(); // Va chiamata quando si vuole aggiornare dei valori della camera
+    cameraRef.current.updateProjectionMatrix();
   });
 
   return (
