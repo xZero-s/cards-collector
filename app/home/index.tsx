@@ -1,37 +1,23 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { usePlanets } from "~/hooks/usePlanets";
 import { useResizeWindow } from "~/hooks/useResizeWindow";
-import { Pane } from "tweakpane";
 
 export function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
-  const axesHelperRef = useRef<THREE.AxesHelper>(null);
+
+  const { planets, createPlanetMesh } = usePlanets();
 
   useEffect(() => {
     // initialize the camera
-    /**
-      --- ORTOGRAPHIC CAMERA
-      const camera = new THREE.OrthographicCamera(
-        -1 * window.innerWidth / window.innerHeight,
-        1,
-        1,
-        -1,
-        0.1,
-        200,
-      );
-    */
-
-    // --- PERSPECTIVE CAMERA
     cameraRef.current = new THREE.PerspectiveCamera(
-      35, // FOV -> più vicino allo 0, più la camera è vicina alla mesh
-      innerWidth / innerHeight, // Aspect Ratio
-      0.5, // NEAR -> indica entro quanto puoi vedere la mesh. 0.05, Three.js non usa numeri dopo il decimale
-      30, // FAR
+      35,
+      innerWidth / innerHeight,
+      0.1,
+      400,
     );
-
-    axesHelperRef.current = new THREE.AxesHelper(2);
   }, []);
 
   useEffect(() => {
@@ -40,76 +26,42 @@ export function HomePage() {
     const canvas = canvasRef.current;
     const camera = cameraRef.current;
 
-    // initialize the pane
-    const pane = new Pane();
-
     // initialize the scene
     const scene = new THREE.Scene();
 
-    // initialize the geometry
-    const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const torusKnotGeometry = new THREE.TorusKnotGeometry(0.5, 0.15, 100, 16);
-    const planeGeometry = new THREE.PlaneGeometry(1, 1);
+    // initialize geometry
+    const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
 
-    const material = new THREE.MeshPhysicalMaterial();
-    material.color = new THREE.Color("green");
+    // initialize meshes
+    const planetMeshes = planets.map((planet) => {
+      // Appunto: earth.add(moon); -> si possono aggiugnere mesh come figlie di altre mesh per posizionarle
+      // earth.rotation.y += 0.01; // quando la mesh ruota, automaticamente le sue figlie ruotano attorno alla mesh
 
-    pane.addBinding(material, "metalness", {
-      min: 0,
-      max: 1,
-      step: 0.01,
+      // create the mesh
+      const planetMesh = new THREE.Mesh(sphereGeometry, planet.material);
+
+      // set the scale and position
+      planetMesh.scale.setScalar(planet.radius);
+      planetMesh.position.x = planet.distance;
+
+      // add it to scene
+      scene.add(planetMesh);
+
+      planet.moons.forEach((moon) => {
+        const moonMesh = new THREE.Mesh(sphereGeometry, moon.material);
+        moonMesh.scale.setScalar(moon.radius);
+        moonMesh.position.x = moon.distance;
+        planetMesh.add(moonMesh);
+      });
+
+      return planetMesh;
     });
 
-    pane.addBinding(material, "roughness", {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-
-    pane.addBinding(material, "reflectivity", {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-
-    pane.addBinding(material, "clearcoat", {
-      min: 0,
-      max: 1,
-      step: 0.01,
-    });
-
-    // initialize the meshes
-    const cubeMesh = new THREE.Mesh(cubeGeometry, material);
-
-    const cubeMesh2 = new THREE.Mesh(torusKnotGeometry, material);
-    cubeMesh2.position.x = 1.5;
-
-    const plane = new THREE.Mesh(planeGeometry, material);
-    plane.position.x = -1.5;
-
-    scene.add(cubeMesh);
-    scene.add(cubeMesh2);
-    scene.add(plane);
-
-    // initialize the light
-    const light = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(light);
-
-    const pointLight = new THREE.PointLight(0xffffff, 0.9);
-    pointLight.position.set(1, 1, 1);
-    scene.add(pointLight);
-
-    const tempVector = new THREE.Vector3(0, 0, 0);
-    cubeMesh.position.copy(tempVector);
-
-    if (!axesHelperRef.current) return;
-    scene.add(axesHelperRef.current);
+    // add lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 
     if (!camera) return;
-    camera.position.z = 5;
-
-    // calcolo distanza mesh da camera
-    console.log(cubeMesh.position.distanceTo(camera.position));
+    camera.position.z = 35;
 
     // initialize the renderer
     const renderer = new THREE.WebGLRenderer({
@@ -121,9 +73,15 @@ export function HomePage() {
     controls.enableDamping = true; // Dumping -> permette di avere delle rotazioni fluide quando si ruota la camera
     // controls.autoRotate = true;
 
+    // initialize timer
+    const timer = new THREE.Timer();
+
     // render the scene
     const renderloop = () => {
       renderer.setSize(innerWidth, innerHeight);
+
+      // add animation
+      timer.update();
 
       // Anti-Alising
       const maxPixelRatio = Math.min(devicePixelRatio, 2); // Se PixelRatio è >=3, fissa il maxPixelRatio a 2

@@ -12,7 +12,7 @@ export function HomePage() {
     cameraRef.current = new THREE.PerspectiveCamera(
       35,
       innerWidth / innerHeight,
-      0.5,
+      1,
       30,
     );
 
