@@ -1,71 +1,100 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { useCamera } from "~/hooks/useCamera";
 import { usePlanets } from "~/hooks/usePlanets";
-import { useResizeWindow } from "~/hooks/useResizeWindow";
+import { useScene } from "~/hooks/useScene";
 
 export function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
 
-  const { planets, createPlanetMesh } = usePlanets();
-
-  useEffect(() => {
-    // initialize the camera
-    cameraRef.current = new THREE.PerspectiveCamera(
-      35,
-      innerWidth / innerHeight,
-      0.1,
-      400,
-    );
-  }, []);
+  const { planets, createPlanet, createMesh } = usePlanets();
+  const { scene } = useScene();
+  const { camera } = useCamera();
 
   useEffect(() => {
-    if (!canvasRef.current || !cameraRef.current) return;
+    if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const camera = cameraRef.current;
-
-    // initialize the scene
-    const scene = new THREE.Scene();
-
-    // initialize geometry
-    const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
-
-    // initialize meshes
-    const planetMeshes = planets.map((planet) => {
-      // Appunto: earth.add(moon); -> si possono aggiugnere mesh come figlie di altre mesh per posizionarle
-      // earth.rotation.y += 0.01; // quando la mesh ruota, automaticamente le sue figlie ruotano attorno alla mesh
-
-      // create the mesh
-      const planetMesh = new THREE.Mesh(sphereGeometry, planet.material);
-
-      // set the scale and position
-      planetMesh.scale.setScalar(planet.radius);
-      planetMesh.position.x = planet.distance;
-
-      // add it to scene
-      scene.add(planetMesh);
-
-      planet.moons.forEach((moon) => {
-        const moonMesh = new THREE.Mesh(sphereGeometry, moon.material);
-        moonMesh.scale.setScalar(moon.radius);
-        moonMesh.position.x = moon.distance;
-        planetMesh.add(moonMesh);
-      });
-
-      return planetMesh;
-    });
-
-    // add lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-
-    if (!camera) return;
-    camera.position.z = 35;
 
     // initialize the renderer
     const renderer = new THREE.WebGLRenderer({
       canvas: canvas,
+    });
+
+    // createPlanet(
+    //   "Mercury",
+    //   0.5,
+    //   10,
+    //   0.01,
+    //   [],
+    //   "/static/textures/solar-system/mercury-texture-2k.png",
+    // );
+
+    createPlanet(
+      "Venus",
+      0.8,
+      15,
+      0.007,
+      [],
+      "/static/textures/solar-system/venus-texture-2k.png",
+    );
+
+    createPlanet(
+      "Earth",
+      1,
+      20,
+      0.005,
+      [
+        {
+          name: "Moon",
+          radius: 0.3,
+          distance: 3,
+          speed: 0.015,
+        },
+      ],
+      "/static/textures/solar-system/earth-texture-2k.png",
+    );
+
+    createPlanet(
+      "Mars",
+      0.7,
+      25,
+      0.003,
+      [
+        {
+          name: "Phobos",
+          radius: 0.1,
+          distance: 2,
+          speed: 0.02,
+        },
+        {
+          name: "Deimos",
+          radius: 0.2,
+          distance: 3,
+          speed: 0.015,
+          color: 0xffffff,
+        },
+      ],
+      "/static/textures/solar-system/mars-texture-2k.png",
+    );
+
+    const planetMeshes = planets.map((planet) => {
+      // Appunto: earth.add(moon); -> si possono aggiugnere mesh come figlie di altre mesh per posizionarle
+      // earth.rotation.y += 0.01; // quando la mesh ruota, automaticamente le sue figlie ruotano attorno alla mesh
+
+      const planetMesh = createMesh(planet);
+
+      if (planet.moons) {
+        planet.moons.forEach((moon) => {
+          const moonMesh = createMesh(moon);
+          planetMesh.add(moonMesh);
+        });
+      }
+
+      scene.add(planetMesh);
+
+      return planetMesh;
     });
 
     // instantiate the controls
@@ -83,6 +112,24 @@ export function HomePage() {
       // add animation
       timer.update();
 
+      planetMeshes.forEach((planet, index) => {
+        planet.rotation.y += planets[index].speed;
+        planet.position.x =
+          Math.sin(planet.rotation.y) * planets[index].distance;
+        planet.position.z =
+          Math.cos(planet.rotation.y) * planets[index].distance;
+
+        planet.children.forEach((moon, moonIndex) => {
+          moon.rotation.y += planets[index].moons[moonIndex].speed;
+          moon.position.x =
+            Math.sin(moon.rotation.y) *
+            planets[index].moons[moonIndex].distance;
+          moon.position.z =
+            Math.cos(moon.rotation.y) *
+            planets[index].moons[moonIndex].distance;
+        });
+      });
+
       // Anti-Alising
       const maxPixelRatio = Math.min(devicePixelRatio, 2); // Se PixelRatio è >=3, fissa il maxPixelRatio a 2
       renderer.setPixelRatio(maxPixelRatio);
@@ -95,15 +142,10 @@ export function HomePage() {
     renderloop();
 
     return () => {
+      controls.dispose();
       renderer.dispose();
     };
   }, []);
-
-  useResizeWindow(({ width = innerWidth, height = innerHeight }) => {
-    if (!cameraRef.current) return;
-    cameraRef.current.aspect = width / height;
-    cameraRef.current.updateProjectionMatrix(); // Va chiamata quando si vuole aggiornare dei valori della camera
-  });
 
   return (
     <main>
