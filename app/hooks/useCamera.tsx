@@ -5,7 +5,7 @@ import { useResizeWindow } from "~/hooks/useResizeWindow";
 export function useCamera() {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
   if (cameraRef.current === null) {
-    cameraRef.current = new THREE.PerspectiveCamera(35, 1, 0.5, 400);
+    cameraRef.current = new THREE.PerspectiveCamera(35, 1, 1, 400);
   }
   const camera = cameraRef.current;
 
