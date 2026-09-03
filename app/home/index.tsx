@@ -43,7 +43,7 @@ export function HomePage() {
 
     const minAngleX = -Math.PI / 8;
     const maxAngleX = Math.PI / 8;
-    const minAngleY = -Math.PI;
+    const minAngleY = -Math.PI - Math.PI / 8;
     const maxAngleY = Math.PI / 8;
 
     let targetPitch = 0;
@@ -74,7 +74,12 @@ export function HomePage() {
         targetPitch = THREE.MathUtils.clamp(targetPitch, minAngleX, maxAngleX);
 
         targetYaw += deltaMove.x * rotationSpeed;
-        targetYaw = THREE.MathUtils.clamp(targetYaw, minAngleY, maxAngleY);
+        if (targetYaw >= -0.9 && targetYaw <= -0.8) {
+          targetYaw = -Math.PI;
+        } else if (targetYaw >= -2.3 && targetYaw <= -2.2) {
+          targetYaw = 0;
+        } else
+          targetYaw = THREE.MathUtils.clamp(targetYaw, minAngleY, maxAngleY);
       }
 
       previousMousePosition = { x: e.offsetX, y: e.offsetY };
@@ -82,7 +87,10 @@ export function HomePage() {
 
     window.addEventListener("mouseup", () => {
       isDragging = false;
-      targetPitch = 0;
+
+      if (targetPitch !== 0) targetPitch = 0;
+      if (targetYaw > -0.8) targetYaw = 0;
+      else if (targetYaw < -2.3) targetYaw = -Math.PI;
     });
 
     const renderloop = () => {
