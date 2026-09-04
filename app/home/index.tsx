@@ -15,6 +15,7 @@ export function HomePage() {
 
     const renderer = new THREE.WebGLRenderer({
       canvas: canvas,
+      antialias: true,
     });
 
     const geometry = roundedGeometry(1.4, 2, 0.12);
@@ -41,79 +42,104 @@ export function HomePage() {
 
     scene.add(pivot);
 
-    const minAngleX = -Math.PI / 8;
-    const maxAngleX = Math.PI / 8;
-    const minAngleY = -Math.PI - Math.PI / 8;
-    const maxAngleY = Math.PI / 8;
+    const raycaster = new THREE.Raycaster();
+    const mouseNDC = new THREE.Vector2();
 
-    let targetPitch = 0;
-    let targetYaw = 0;
-    let currentPitch = 0;
-    let currentYaw = 0;
+    // let isFlipped = false;
+    // let dragStartX = 0;
+    // const SWIPE_TRESHOLD = 50;
 
+    let hoverTargetX = 0;
+    let hoverTargetY = 0;
+    const maxHoverAngle = Math.PI / 12;
+
+    // let dragTargetY = 0;
+    // let isDragging = false;
+
+    let pitch = 0;
+    let yaw = 0;
     const lerpSpeed = 0.05;
 
-    let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
-
-    window.addEventListener("mousedown", (e: MouseEvent) => {
-      isDragging = true;
-      previousMousePosition = { x: e.offsetX, y: e.offsetY };
-    });
-
     window.addEventListener("mousemove", (e: MouseEvent) => {
-      if (isDragging) {
-        const deltaMove = {
-          x: e.offsetX - previousMousePosition.x,
-          y: e.offsetY - previousMousePosition.y,
-        };
+      // Update vettore NDC per Raycaster e Hover
+      mouseNDC.x = (e.clientX / innerWidth) * 2 - 1;
+      mouseNDC.y = -(e.clientY / innerHeight) * 2 + 1;
 
-        const rotationSpeed = 0.01;
+      /*if (isDragging) {
+        const DRAG_SPEED = 0.01;
+        const deltaX = e.clientX - dragStartX;
 
-        targetPitch += deltaMove.y * rotationSpeed;
-        targetPitch = THREE.MathUtils.clamp(targetPitch, minAngleX, maxAngleX);
-
-        targetYaw += deltaMove.x * rotationSpeed;
-        if (targetYaw >= -0.9 && targetYaw <= -0.8) {
-          targetYaw = -Math.PI;
-        } else if (targetYaw >= -2.3 && targetYaw <= -2.2) {
-          targetYaw = 0;
-        } else
-          targetYaw = THREE.MathUtils.clamp(targetYaw, minAngleY, maxAngleY);
-      }
-
-      previousMousePosition = { x: e.offsetX, y: e.offsetY };
+        const baseRotation = isFlipped ? -Math.PI : 0;
+        dragTargetY = baseRotation + deltaX * DRAG_SPEED;
+      }*/
     });
 
-    window.addEventListener("mouseup", () => {
+    /*window.addEventListener("mousedown", (e: MouseEvent) => {
+      raycaster.setFromCamera(mouseNDC, camera);
+      const intersects = raycaster.intersectObject(pivot, true);
+
+      if (intersects.length > 0) {
+        isDragging = true;
+        dragStartX = e.clientX;
+      }
+    });
+
+    window.addEventListener("mouseup", (e: MouseEvent) => {
+      if (!isDragging) return;
       isDragging = false;
 
-      if (targetPitch !== 0) targetPitch = 0;
-      if (targetYaw > -0.8) targetYaw = 0;
-      else if (targetYaw < -2.3) targetYaw = -Math.PI;
-    });
+      const deltaX = e.clientX - dragStartX;
 
-    const renderloop = () => {
+      if (Math.abs(deltaX) > SWIPE_TRESHOLD) {
+        isFlipped = !isFlipped;
+      }
+
+      dragTargetY = isFlipped ? -Math.PI : 0;
+    });*/
+
+    function animate() {
+      requestAnimationFrame(animate);
+
       renderer.setSize(innerWidth, innerHeight);
       const maxPixelRatio = Math.min(devicePixelRatio, 2);
       renderer.setPixelRatio(maxPixelRatio);
 
-      currentPitch = THREE.MathUtils.lerp(currentPitch, targetPitch, lerpSpeed);
-      currentYaw = THREE.MathUtils.lerp(currentYaw, targetYaw, lerpSpeed);
+      // hover animation
+      raycaster.setFromCamera(mouseNDC, camera);
+      const intersects = raycaster.intersectObject(pivot, true);
 
-      pivot.rotation.x = currentPitch;
-      card.rotation.y = currentYaw;
+      if (intersects.length > 0) {
+        const flipMultiplier = Math.cos(yaw);
 
-      window.requestAnimationFrame(renderloop);
+        hoverTargetX = mouseNDC.y * maxHoverAngle * flipMultiplier;
+        hoverTargetY = mouseNDC.x * maxHoverAngle;
+
+        // document.body.style.cursor = isDragging ? "grabbing" : "grab";
+      } else {
+        hoverTargetX = 0;
+        hoverTargetY = 0;
+
+        // if (!isDragging) document.body.style.cursor = "default";
+      }
+
+      const finalTargetX = hoverTargetX;
+      const finalTargetY = /*dragTargetY +*/ hoverTargetY;
+
+      pitch = THREE.MathUtils.lerp(pitch, finalTargetX, lerpSpeed);
+      yaw = THREE.MathUtils.lerp(yaw, finalTargetY, lerpSpeed);
+
+      card.rotation.x = pitch;
+      pivot.rotation.y = yaw;
+
       renderer.render(scene, camera);
-    };
+    }
 
-    renderloop();
+    animate();
 
     return () => {
       renderer.dispose();
     };
-  }, []);
+  }, [camera, scene]);
 
   function roundedGeometry(
     width: number,
