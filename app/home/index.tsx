@@ -45,9 +45,16 @@ export function HomePage() {
     const raycaster = new THREE.Raycaster();
     const mouseNDC = new THREE.Vector2();
 
+    let currentFlipAngle = 0;
+    let dragStartX = 0;
+    const SWIPE_TRESHOLD = 150;
+
     let hoverTargetX = 0;
     let hoverTargetY = 0;
     const maxHoverAngle = Math.PI / 12;
+
+    let dragTargetY = 0;
+    let isDragging = false;
 
     let pitch = 0;
     let yaw = 0;
@@ -57,6 +64,36 @@ export function HomePage() {
       // Update vettore NDC per Raycaster e Hover
       mouseNDC.x = (e.clientX / innerWidth) * 2 - 1;
       mouseNDC.y = -(e.clientY / innerHeight) * 2 + 1;
+
+      if (isDragging) {
+        const DRAG_SPEED = 0.01;
+        const deltaX = e.clientX - dragStartX;
+
+        dragTargetY = currentFlipAngle + deltaX * DRAG_SPEED;
+      }
+    });
+
+    window.addEventListener("mousedown", (e: MouseEvent) => {
+      raycaster.setFromCamera(mouseNDC, camera);
+      const intersects = raycaster.intersectObject(pivot, true);
+
+      if (intersects.length > 0) {
+        isDragging = true;
+        dragStartX = e.clientX;
+      }
+    });
+
+    window.addEventListener("mouseup", (e: MouseEvent) => {
+      if (!isDragging) return;
+      isDragging = false;
+
+      const deltaX = e.clientX - dragStartX;
+
+      if (Math.abs(deltaX) > SWIPE_TRESHOLD) {
+        currentFlipAngle += Math.sign(deltaX) * Math.PI;
+      }
+
+      dragTargetY = currentFlipAngle;
     });
 
     function animate() {
@@ -75,13 +112,17 @@ export function HomePage() {
 
         hoverTargetX = mouseNDC.y * maxHoverAngle * flipMultiplier;
         hoverTargetY = mouseNDC.x * maxHoverAngle;
+
+        document.body.style.cursor = isDragging ? "grabbing" : "grab";
       } else {
         hoverTargetX = 0;
         hoverTargetY = 0;
+
+        if (!isDragging) document.body.style.cursor = "default";
       }
 
       const finalTargetX = hoverTargetX;
-      const finalTargetY = hoverTargetY;
+      const finalTargetY = dragTargetY + hoverTargetY;
 
       pitch = THREE.MathUtils.lerp(pitch, finalTargetX, lerpSpeed);
       yaw = THREE.MathUtils.lerp(yaw, finalTargetY, lerpSpeed);
