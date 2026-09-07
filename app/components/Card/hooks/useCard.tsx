@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 const WIDTH = 1.4;
@@ -19,7 +19,7 @@ interface CardOptions {
 interface Card {
   pivot: THREE.Group;
   card: THREE.Group;
-  // dispose: () => void;
+  dispose: () => void;
 }
 
 export function useCard({ scene, frontTexture, backTexture }: CardOptions) {
@@ -27,7 +27,7 @@ export function useCard({ scene, frontTexture, backTexture }: CardOptions) {
   const pivotRef = useRef<THREE.Group | null>(null);
 
   useEffect(() => {
-    const { pivot, card /*dispose*/ } = createCard(frontTexture, backTexture);
+    const { pivot, card, dispose } = createCard(frontTexture, backTexture);
 
     cardRef.current = card;
     pivotRef.current = pivot;
@@ -35,7 +35,7 @@ export function useCard({ scene, frontTexture, backTexture }: CardOptions) {
 
     return () => {
       scene.remove(pivot);
-      // dispose();
+      dispose();
       cardRef.current = null;
       pivotRef.current = null;
     };
@@ -49,6 +49,7 @@ export function useCard({ scene, frontTexture, backTexture }: CardOptions) {
 
 function createCard(frontTexture?: string, backTexture?: string): Card {
   const geometry = roundedGeometry();
+
   const planeMaterialFront = new THREE.MeshBasicMaterial({
     color: FALLBACK_FRONT_COLOR,
     side: THREE.FrontSide,
@@ -73,6 +74,9 @@ function createCard(frontTexture?: string, backTexture?: string): Card {
   return {
     card,
     pivot,
+    dispose() {
+      geometry.dispose();
+    },
   };
 }
 

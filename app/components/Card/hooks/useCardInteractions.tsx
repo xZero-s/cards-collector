@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
 
 const MAX_HOVER_ANGLE = Math.PI / 12;
 const LERP_SPEED = 0.05;
+const REFERENCE_FPS = 120;
 const DRAG_SPEED = 0.01;
 const SWIPE_TRESHOLD = 150;
 
@@ -38,6 +39,13 @@ export function useCardInteractions({
     return raycasterRef.current.intersectObject(pivot.current, true).length > 0;
   }, [camera, pivot]);
 
+  const setCursor = useCallback((next: string) => {
+    if (cursorRef.current === next) return;
+
+    cursorRef.current = next;
+    document.body.style.cursor = next;
+  }, []);
+
   useEffect(() => {
     raycasterRef.current = new THREE.Raycaster();
     mouseNDCRef.current = new THREE.Vector2();
@@ -60,13 +68,9 @@ export function useCardInteractions({
       if (!pivot.current || !mouseNDCRef.current || !raycasterRef.current)
         return;
 
-      raycasterRef.current.setFromCamera(mouseNDCRef.current, camera);
-      const intersects = raycasterRef.current.intersectObject(
-        pivot.current,
-        true,
-      );
+      const isOver = isOverCard();
 
-      if (intersects.length > 0) {
+      if (isOver) {
         isDraggingRef.current = true;
         dragStartXRef.current = e.clientX;
       }
@@ -86,25 +90,21 @@ export function useCardInteractions({
       dragTargetYRef.current = currentFlipAngleRef.current;
     }
 
-    window.addEventListener("mousemove", (e: MouseEvent) => {
-      onMouseMoveEvent(e);
-    });
-    window.addEventListener("mousedown", (e: MouseEvent) => {
-      onMouseDownEvent(e);
-    });
-    window.addEventListener("mouseup", (e: MouseEvent) => {
-      onMouseUpEvent(e);
-    });
-  }, [isOverCard]);
+    window.addEventListener("mousemove", onMouseMoveEvent);
+    window.addEventListener("mousedown", onMouseDownEvent);
+    window.addEventListener("mouseup", onMouseUpEvent);
 
-  const setCursor = useCallback((next: string) => {
-    if (cursorRef.current === next) return;
+    return () => {
+      window.removeEventListener("mousemove", onMouseMoveEvent);
+      window.removeEventListener("mousedown", onMouseDownEvent);
+      window.removeEventListener("mouseup", onMouseUpEvent);
 
-    cursorRef.current = next;
-    document.body.style.cursor = next;
-  }, []);
+      document.body.style.cursor = "default";
+      cursorRef.current = "default";
+    };
+  }, [camera, pivot]);
 
-  const update = useCallback(() => {
+  function update(deltaSeconds: number) {
     if (!pivot.current || !card.current || !mouseNDCRef.current) return;
 
     const isOver = isOverCard();
@@ -122,20 +122,23 @@ export function useCardInteractions({
     if (isDraggingRef.current) setCursor("grabbing");
     else setCursor(isOver ? "grab" : "default");
 
+    const time = 1 - Math.exp(-LERP_SPEED * REFERENCE_FPS * deltaSeconds);
+
     pitchRef.current = THREE.MathUtils.lerp(
       pitchRef.current,
       hoverTargetX,
-      LERP_SPEED,
+      time,
     );
+
     yawRef.current = THREE.MathUtils.lerp(
       yawRef.current,
       dragTargetYRef.current + hoverTargetY,
-      LERP_SPEED,
+      time,
     );
 
     card.current.rotation.x = pitchRef.current;
     pivot.current.rotation.y = yawRef.current;
-  }, [card, isOverCard, pivot, setCursor]);
+  }
 
   return { update };
 }

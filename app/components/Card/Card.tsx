@@ -1,22 +1,28 @@
-import { useRef, useState } from "react";
-import { useCamera } from "~/hooks/useCamera";
-import { useScene } from "~/hooks/useScene";
+import { useEffect, useRef } from "react";
 import { useCard } from "./hooks/useCard";
 import { useCardInteractions } from "./hooks/useCardInteractions";
-import { useCardAnimation } from "./hooks/useCardAnimation";
+import { useThree } from "~/providers/ThreeProvider";
 
-export function Card(frontCard?: string, backCard?: string) {
-  const [cardBackgrounds, setCardBackgrounds] = useState([
-    frontCard ?? "",
-    backCard ?? "",
-  ]);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { scene } = useScene();
-  const { camera } = useCamera();
-  const { card, pivot } = useCard({ scene });
+interface CardProps {
+  frontTexture?: string;
+  backTexture?: string;
+}
+
+export function Card({ frontTexture, backTexture }: CardProps) {
+  const { scene, camera, subscribe } = useThree();
+  const { card, pivot } = useCard({ scene, frontTexture, backTexture });
   const { update } = useCardInteractions({ camera, card, pivot });
 
-  useCardAnimation(canvasRef, { scene, camera, onFrame: update });
+  const updateRef = useRef(update);
 
-  return <canvas ref={canvasRef} className="threejs" />;
+  useEffect(() => {
+    updateRef.current = update;
+  }, [update]);
+
+  useEffect(
+    () => subscribe((deltaSeconds: number) => updateRef.current(deltaSeconds)),
+    [subscribe],
+  );
+
+  return null;
 }
