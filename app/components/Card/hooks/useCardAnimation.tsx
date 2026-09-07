@@ -1,11 +1,9 @@
-import { timeStamp } from "console";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useResizeWindow } from "~/hooks/useResizeWindow";
+import type { FrameCallback } from "~/providers/ThreeProvider";
 
 const MAX_PIXEL_RATIO = 2;
-
-type FrameCallback = (delta: number) => void;
 
 interface AnimateOptions {
   scene: THREE.Scene;
@@ -20,6 +18,8 @@ export function useCardAnimation(
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const onFrameRef = useRef(onFrame);
 
+  // onFrame cambia identita' a ogni render del provider: tenerlo in un ref
+  // evita che l'effect qui sotto smonti e rimonti il loop ogni volta
   useEffect(() => {
     onFrameRef.current = onFrame;
   }, [onFrame]);
@@ -44,6 +44,7 @@ export function useCardAnimation(
 
     function animate(timestamp: number) {
       frameId = requestAnimationFrame(animate);
+
       timer.update(timestamp);
       onFrameRef.current?.(timer.getDelta());
 
