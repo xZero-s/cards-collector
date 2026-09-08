@@ -1,5 +1,9 @@
 import { Canvas } from "@react-three/fiber";
-import { CardRedesign } from "~/components/CardRedesign/Card";
+import { CardRedesign } from "~/components/Card/Card";
+
+const WIDTH = 1.4;
+const HEIGHT = 2;
+const RADIUS = 0.12;
 
 export function HomePage() {
   return (
@@ -10,7 +14,7 @@ export function HomePage() {
       >
         <ambientLight intensity={0.4} />
         <pointLight position={[1, 1, 1]} intensity={0.9} />
-        <CardRedesign />
+        <CardRedesign width={WIDTH} height={HEIGHT} radius={RADIUS} />
       </Canvas>
     </main>
   );
