@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 
 const MAX_HOVER_ANGLE = Math.PI / 12;
@@ -7,120 +8,96 @@ const REFERENCE_FPS = 120;
 const DRAG_SPEED = 0.01;
 const SWIPE_TRESHOLD = 150;
 
-interface CardInteractionsOptions {
-  camera: THREE.PerspectiveCamera;
-  card: React.RefObject<THREE.Group | null>;
-  pivot: React.RefObject<THREE.Group | null>;
+type PointerCaptureTarget = {
+  setPointerCapture(pointerId: number): void;
+  releasePointerCapture(pointerId: number): void;
+  hasPointerCapture(pointerId: number): boolean;
+};
+
+// R3F rimpiazza event.target con uno shim di capture ma lo lascia tipizzato
+// come EventTarget, ereditato da PointerEvent
+function captureTarget(e: ThreeEvent<PointerEvent>) {
+  return e.target as unknown as PointerCaptureTarget;
 }
 
-export function useCardInteractions({
-  camera,
-  card,
-  pivot,
-}: CardInteractionsOptions) {
-  const raycasterRef = useRef<THREE.Raycaster>(null);
-  const mouseNDCRef = useRef<THREE.Vector2>(null);
+export function useCardTilt() {
+  const pivotRef = useRef<THREE.Group>(null);
+  const cardRef = useRef<THREE.Group>(null);
 
-  const isDraggingRef = useRef<boolean>(false);
-  const currentFlipAngleRef = useRef<number>(0);
-  const dragStartXRef = useRef<number>(0);
-  const dragTargetYRef = useRef<number>(0);
+  const uvRef = useRef<THREE.Vector2>(new THREE.Vector2());
 
-  const pitchRef = useRef<number>(0);
-  const yawRef = useRef<number>(0);
+  const isOverRef = useRef(false);
+  const isDraggingRef = useRef(false);
 
-  const cursorRef = useRef<string>("default");
+  const pitchRef = useRef(0);
+  const yawRef = useRef(0);
+  const currentFlipAngleRef = useRef(0);
+  const dragStartXRef = useRef(0);
+  const dragTargetYRef = useRef(0);
 
-  const isOverCard = useCallback(() => {
-    if (!pivot.current || !raycasterRef.current || !mouseNDCRef.current)
-      return false;
-
-    raycasterRef.current.setFromCamera(mouseNDCRef.current, camera);
-    return raycasterRef.current.intersectObject(pivot.current, true).length > 0;
-  }, [camera, pivot]);
-
-  const setCursor = useCallback((next: string) => {
-    if (cursorRef.current === next) return;
-
-    cursorRef.current = next;
-    document.body.style.cursor = next;
+  const onPointerOver = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    isOverRef.current = true;
+    if (!isDraggingRef.current) document.body.style.cursor = "grab";
   }, []);
 
-  useEffect(() => {
-    raycasterRef.current = new THREE.Raycaster();
-    mouseNDCRef.current = new THREE.Vector2();
+  const onPointerOut = useCallback(() => {
+    isOverRef.current = false;
+    if (!isDraggingRef.current) document.body.style.cursor = "default";
+  }, []);
 
-    function onMouseMoveEvent(e: MouseEvent) {
-      if (mouseNDCRef.current === null) return;
+  const onPointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    captureTarget(e).setPointerCapture(e.pointerId);
 
-      // Update vettore NDC per Raycaster e Hover
-      mouseNDCRef.current.x = (e.clientX / innerWidth) * 2 - 1;
-      mouseNDCRef.current.y = -(e.clientY / innerHeight) * 2 + 1;
+    isDraggingRef.current = true;
+    dragStartXRef.current = e.clientX;
+    document.body.style.cursor = "grabbing";
+  }, []);
 
-      if (isDraggingRef.current) {
-        const deltaX = e.clientX - dragStartXRef.current;
-        dragTargetYRef.current =
-          currentFlipAngleRef.current + deltaX * DRAG_SPEED;
-      }
-    }
-
-    function onMouseDownEvent(e: MouseEvent) {
-      if (!pivot.current || !mouseNDCRef.current || !raycasterRef.current)
-        return;
-
-      const isOver = isOverCard();
-
-      if (isOver) {
-        isDraggingRef.current = true;
-        dragStartXRef.current = e.clientX;
-      }
-    }
-
-    function onMouseUpEvent(e: MouseEvent) {
-      if (!isDraggingRef.current) return;
-
-      isDraggingRef.current = false;
-
+  const onPointerMove = useCallback((e: ThreeEvent<PointerEvent>) => {
+    if (isDraggingRef.current) {
       const deltaX = e.clientX - dragStartXRef.current;
-
-      if (Math.abs(deltaX) > SWIPE_TRESHOLD) {
-        currentFlipAngleRef.current += Math.sign(deltaX) * Math.PI;
-      }
-
-      dragTargetYRef.current = currentFlipAngleRef.current;
+      dragTargetYRef.current =
+        currentFlipAngleRef.current + deltaX * DRAG_SPEED;
+      return;
     }
 
-    window.addEventListener("mousemove", onMouseMoveEvent);
-    window.addEventListener("mousedown", onMouseDownEvent);
-    window.addEventListener("mouseup", onMouseUpEvent);
+    if (e.uv) uvRef.current?.set(e.uv.x * 2 - 1, e.uv.y * 2 - 1);
+  }, []);
 
-    return () => {
-      window.removeEventListener("mousemove", onMouseMoveEvent);
-      window.removeEventListener("mousedown", onMouseDownEvent);
-      window.removeEventListener("mouseup", onMouseUpEvent);
+  const onPointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
+    if (!isDraggingRef.current) return;
 
-      document.body.style.cursor = "default";
-      cursorRef.current = "default";
-    };
-  }, [camera, pivot]);
+    captureTarget(e).releasePointerCapture(e.pointerId);
+    isDraggingRef.current = false;
 
-  function update(deltaSeconds: number) {
-    if (!pivot.current || !card.current || !mouseNDCRef.current) return;
+    const deltaX = e.clientX - dragStartXRef.current;
 
-    const isOver = isOverCard();
+    if (Math.abs(deltaX) > SWIPE_TRESHOLD) {
+      currentFlipAngleRef.current += Math.sign(deltaX) * Math.PI;
+    }
+
+    dragTargetYRef.current = currentFlipAngleRef.current;
+    document.body.style.cursor = isOverRef.current ? "grab" : "default";
+  }, []);
+
+  useEffect(() => () => void (document.body.style.cursor = "default"), []);
+
+  useFrame((_state, deltaSeconds) => {
+    const pivot = pivotRef.current;
+    const card = cardRef.current;
+    if (!pivot || !card) return;
 
     let hoverTargetX = 0;
     let hoverTargetY = 0;
 
-    if (isOver) {
+    if (isOverRef.current) {
       const flipMultiplier = Math.cos(yawRef.current);
 
-      hoverTargetX = mouseNDCRef.current.y * MAX_HOVER_ANGLE * flipMultiplier;
-      hoverTargetY = mouseNDCRef.current.x * MAX_HOVER_ANGLE;
+      hoverTargetX = uvRef.current.y * MAX_HOVER_ANGLE * flipMultiplier;
+      hoverTargetY = uvRef.current.x * MAX_HOVER_ANGLE;
     }
-
-    if (isDraggingRef.current) setCursor("grabbing");
-    else setCursor(isOver ? "grab" : "default");
 
     const time = 1 - Math.exp(-LERP_SPEED * REFERENCE_FPS * deltaSeconds);
 
@@ -129,16 +106,25 @@ export function useCardInteractions({
       hoverTargetX,
       time,
     );
-
     yawRef.current = THREE.MathUtils.lerp(
       yawRef.current,
       dragTargetYRef.current + hoverTargetY,
       time,
     );
 
-    card.current.rotation.x = pitchRef.current;
-    pivot.current.rotation.y = yawRef.current;
-  }
+    card.rotation.x = pitchRef.current;
+    pivot.rotation.y = yawRef.current;
+  });
 
-  return { update };
+  return {
+    pivotRef,
+    cardRef,
+    handlers: {
+      onPointerOver,
+      onPointerOut,
+      onPointerMove,
+      onPointerDown,
+      onPointerUp,
+    },
+  };
 }
