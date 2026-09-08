@@ -1,28 +1,49 @@
-import { useEffect, useRef } from "react";
-import { useCard } from "./hooks/useCard";
-import { useCardInteractions } from "./hooks/useCardInteractions";
-import { useThree } from "~/providers/ThreeProvider";
+import * as THREE from "three";
+import { useCardRedesign } from "./hooks/useCard";
+import { useCardTilt } from "./hooks/useCardInteractions";
+
+const WIDTH = 1.4;
+const HEIGHT = 2;
+const RADIUS = 0.12;
+const GAP = 0.01;
+const FALLBACK_FRONT_COLOR = 0x00ff00;
+const FALLBACK_BACK_COLOR = 0x0000ff;
 
 interface CardProps {
   frontTexture?: string;
   backTexture?: string;
 }
 
-export function Card({ frontTexture, backTexture }: CardProps) {
-  const { scene, camera, subscribe } = useThree();
-  const { card, pivot } = useCard({ scene, frontTexture, backTexture });
-  const { update } = useCardInteractions({ camera, card, pivot });
+export function CardRedesign({ frontTexture, backTexture }: CardProps) {
+  const { geometry } = useCardRedesign({ frontTexture, backTexture });
+  const { pivotRef, cardRef, handlers } = useCardTilt();
 
-  const updateRef = useRef(update);
+  return (
+    <>
+      <group ref={pivotRef}>
+        <group ref={cardRef}>
+          <mesh geometry={geometry(WIDTH, HEIGHT, RADIUS)}>
+            <meshBasicMaterial
+              color={FALLBACK_FRONT_COLOR}
+              side={THREE.FrontSide}
+            />
+          </mesh>
 
-  useEffect(() => {
-    updateRef.current = update;
-  }, [update]);
+          <mesh
+            geometry={geometry(WIDTH, HEIGHT, RADIUS)}
+            position={[0, 0, -GAP]}
+          >
+            <meshBasicMaterial
+              color={FALLBACK_BACK_COLOR}
+              side={THREE.BackSide}
+            />
+          </mesh>
+        </group>
+      </group>
 
-  useEffect(
-    () => subscribe((deltaSeconds: number) => updateRef.current(deltaSeconds)),
-    [subscribe],
+      <mesh geometry={geometry(WIDTH, HEIGHT, RADIUS)} {...handlers}>
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+    </>
   );
-
-  return null;
 }
