@@ -7,6 +7,13 @@ const LERP_SPEED = 0.05;
 const REFERENCE_FPS = 120;
 const DRAG_SPEED = 0.01;
 const SWIPE_TRESHOLD = 150;
+const GLARE_DISTANCE = 0.5;
+const GLARE_INTENSITY = 0.3;
+
+interface CardTiltProps {
+  width: number;
+  height: number;
+}
 
 type PointerCaptureTarget = {
   setPointerCapture(pointerId: number): void;
@@ -14,17 +21,15 @@ type PointerCaptureTarget = {
   hasPointerCapture(pointerId: number): boolean;
 };
 
-// R3F rimpiazza event.target con uno shim di capture ma lo lascia tipizzato
-// come EventTarget, ereditato da PointerEvent
 function captureTarget(e: ThreeEvent<PointerEvent>) {
   return e.target as unknown as PointerCaptureTarget;
 }
 
-export function useCardTilt() {
+export function useCardTilt({ width, height }: CardTiltProps) {
   const pivotRef = useRef<THREE.Group>(null);
   const cardRef = useRef<THREE.Group>(null);
-
   const uvRef = useRef<THREE.Vector2>(new THREE.Vector2());
+  const glareRef = useRef<THREE.PointLight>(new THREE.PointLight());
 
   const isOverRef = useRef(false);
   const isDraggingRef = useRef(false);
@@ -112,6 +117,19 @@ export function useCardTilt() {
       time,
     );
 
+    glareRef.current.intensity = THREE.MathUtils.lerp(
+      glareRef.current.intensity,
+      isOverRef.current ? GLARE_INTENSITY : 0,
+      time,
+    );
+
+    glareRef.current.visible = isOverRef.current;
+    glareRef.current.position.set(
+      uvRef.current.x * (width / 2),
+      uvRef.current.y * (height / 2),
+      GLARE_DISTANCE,
+    );
+
     card.rotation.x = pitchRef.current;
     pivot.rotation.y = yawRef.current;
   });
@@ -119,6 +137,7 @@ export function useCardTilt() {
   return {
     pivotRef,
     cardRef,
+    glareRef,
     handlers: {
       onPointerOver,
       onPointerOut,

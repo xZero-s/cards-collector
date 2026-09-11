@@ -11,7 +11,7 @@ interface CardProps {
   radius: number;
 }
 
-export function useCardRedesign({
+export function useCard({
   frontTexture,
   backTexture,
   width,

@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { CardRedesign } from "~/components/Card/Card";
+import { Card } from "~/components/Card/Card";
 
 const WIDTH = 1.4;
 const HEIGHT = 2;
@@ -12,9 +12,9 @@ export function HomePage() {
         dpr={[1, 2]}
         camera={{ fov: 35, near: 1, far: 400, position: [0, 0, 5] }}
       >
-        <ambientLight intensity={0.4} />
-        <pointLight position={[1, 1, 1]} intensity={0.9} />
-        <CardRedesign width={WIDTH} height={HEIGHT} radius={RADIUS} />
+        <ambientLight intensity={0.9} />
+
+        <Card width={WIDTH} height={HEIGHT} radius={RADIUS} />
       </Canvas>
     </main>
   );
