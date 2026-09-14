@@ -3,12 +3,12 @@ import { useCard } from "./hooks/useCard";
 import { useCardTilt } from "./hooks/useCardInteractions";
 import { useTexture } from "@react-three/drei";
 
-import colorFrontImg from "./textures/onyx/converted/onyx_color.webp";
-import roughnessFrontImg from "./textures/onyx/converted/onyx_roughness.webp";
+import colorFrontImg from "./textures/onyx/onyx_color.webp";
+import roughnessFrontImg from "./textures/onyx/onyx_roughness.webp";
 
-import colorBackImg from "./textures/ground/converted/ground_color.webp";
-import normalBackImg from "./textures/ground/converted/ground_normal.webp";
-import roughnessBackImg from "./textures/ground/converted/ground_roughness.webp";
+import colorBackImg from "./textures/ground/ground_color.webp";
+import normalBackImg from "./textures/ground/ground_normal.webp";
+import roughnessBackImg from "./textures/ground/ground_roughness.webp";
 import { useMemo } from "react";
 
 const GAP = 0.01;

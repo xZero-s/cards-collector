@@ -4,7 +4,7 @@ import { readdir, mkdir } from "fs/promises";
 import path from "path";
 
 const SRC = "./foil";
-const DEST = "./foil/converted";
+const DEST = "./foil";
 
 await mkdir(DEST, { recursive: true });
 
