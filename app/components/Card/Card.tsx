@@ -1,17 +1,19 @@
+import { useMemo } from "react";
 import * as THREE from "three";
+import { useTexture } from "@react-three/drei";
 import { useCard } from "./hooks/useCard";
 import { useCardInteractions } from "./hooks/useCardInteractions";
-import { useTexture } from "@react-three/drei";
+import "./materials/holographicMaterial";
 
 import colorFrontImg from "./textures/onyx/onyx_color.webp";
 import roughnessFrontImg from "./textures/onyx/onyx_roughness.webp";
-
+import grainFoilImg from "./textures/foil/foil_normal.webp";
 import colorBackImg from "./textures/ground/ground_color.webp";
 import normalBackImg from "./textures/ground/ground_normal.webp";
 import roughnessBackImg from "./textures/ground/ground_roughness.webp";
-import { useMemo } from "react";
 
 const GAP = 0.01;
+const HOLO_GAP = 0.001;
 
 interface CardProps {
   frontTexture?: string;
@@ -35,20 +37,23 @@ export function Card({
     height,
     radius,
   });
-  const { pivotRef, cardRef, glareRef, handlers } = useCardInteractions({
-    width,
-    height,
-  });
+  const { pivotRef, cardRef, glareRef, holoRef, handlers } =
+    useCardInteractions({
+      width,
+      height,
+    });
 
   const [
     colorFrontMap,
     roughnessFrontMap,
+    grainFoilMap,
     colorBackMap,
     normalBackMap,
     roughnessBackMap,
   ] = useTexture([
     colorFrontImg,
     roughnessFrontImg,
+    grainFoilImg,
     colorBackImg,
     normalBackImg,
     roughnessBackImg,
@@ -56,6 +61,11 @@ export function Card({
 
   colorFrontMap.colorSpace = THREE.SRGBColorSpace;
   colorBackMap.colorSpace = THREE.SRGBColorSpace;
+
+  // la grana viene ripetuta piu' volte sulla carta: senza RepeatWrapping
+  // il wrap di default (ClampToEdge) spalmerebbe i bordi
+  grainFoilMap.wrapS = THREE.RepeatWrapping;
+  grainFoilMap.wrapT = THREE.RepeatWrapping;
 
   const thicknessFrontMap = useMemo(() => {
     const t = colorFrontMap.clone();
@@ -71,6 +81,18 @@ export function Card({
 
       <group ref={pivotRef}>
         <group ref={cardRef}>
+          <mesh geometry={geometry} position={[0, 0, HOLO_GAP]}>
+            <holographicMaterial
+              ref={holoRef}
+              uMaskMap={colorFrontMap}
+              uGrainMap={grainFoilMap}
+              transparent
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              side={THREE.FrontSide}
+            />
+          </mesh>
+
           <mesh geometry={geometry}>
             <meshPhysicalMaterial
               map={colorFrontMap}

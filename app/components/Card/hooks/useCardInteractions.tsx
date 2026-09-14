@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 
+import type { HolographicMaterialImpl } from "../materials/holographicMaterial";
+import { varying } from "three/tsl";
+
 const MAX_HOVER_ANGLE = Math.PI / 12;
 const LERP_SPEED = 0.05;
 const REFERENCE_FPS = 120;
@@ -30,6 +33,7 @@ export function useCardInteractions({ width, height }: CardTiltProps) {
   const cardRef = useRef<THREE.Group>(null);
   const uvRef = useRef<THREE.Vector2>(new THREE.Vector2());
   const glareRef = useRef<THREE.PointLight>(new THREE.PointLight());
+  const holoRef = useRef<HolographicMaterialImpl>(null);
 
   const isOverRef = useRef(false);
   const isDraggingRef = useRef(false);
@@ -130,6 +134,17 @@ export function useCardInteractions({ width, height }: CardTiltProps) {
       GLARE_DISTANCE,
     );
 
+    const holo = holoRef.current;
+    if (holo) {
+      // uvRef e' in -1..1, lo shader campiona in spazio UV 0..1
+      holo.uGlare.set(
+        uvRef.current.x * 0.5 + 0.5,
+        uvRef.current.y * 0.5 + 0.5,
+      );
+      // agganciarlo all'intensita' della luce riusa il suo stesso fade
+      holo.uGlareStrength = glareRef.current.intensity / GLARE_INTENSITY;
+    }
+
     card.rotation.x = pitchRef.current;
     pivot.rotation.y = yawRef.current;
   });
@@ -138,6 +153,7 @@ export function useCardInteractions({ width, height }: CardTiltProps) {
     pivotRef,
     cardRef,
     glareRef,
+    holoRef,
     handlers: {
       onPointerOver,
       onPointerOut,
