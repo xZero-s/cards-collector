@@ -1,0 +1,20 @@
+{
+  "onyx": {
+    "url": "https://ambientcg.com/view?id=Onyx011",
+    "resolution": "2K-PNG",
+    "license": "CC0",
+    "used": ["Color", "Normal", "Roughness"]
+  },
+  "ground": {
+    "url": "https://ambientcg.com/view?id=Ground097",
+    "resolution": "2K-PNG",
+    "license": "CC0",
+    "used": ["Color", "Normal", "Roughness"]
+  },
+  "foil": {
+    "url": "https://ambientcg.com/view?id=Foil001",
+    "resolution": "2K-PNG",
+    "license": "CC0",
+    "used": ["Normal"]
+  }
+}

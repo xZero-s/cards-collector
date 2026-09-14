@@ -3,8 +3,8 @@ import sharp from "sharp";
 import { readdir, mkdir } from "fs/promises";
 import path from "path";
 
-const SRC = "./foil";
-const DEST = "./foil";
+const SRC = "./";
+const DEST = "./converted";
 
 await mkdir(DEST, { recursive: true });
 
