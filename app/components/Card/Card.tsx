@@ -1,10 +1,17 @@
 import * as THREE from "three";
 import { useCard } from "./hooks/useCard";
 import { useCardTilt } from "./hooks/useCardInteractions";
+import { useTexture } from "@react-three/drei";
+
+import colorFrontImg from "./textures/onyx/converted/onyx_color.webp";
+import roughnessFrontImg from "./textures/onyx/converted/onyx_roughness.webp";
+
+import colorBackImg from "./textures/ground/converted/ground_color.webp";
+import normalBackImg from "./textures/ground/converted/ground_normal.webp";
+import roughnessBackImg from "./textures/ground/converted/ground_roughness.webp";
+import { useMemo } from "react";
 
 const GAP = 0.01;
-const FALLBACK_FRONT_COLOR = 0x00ff00;
-const FALLBACK_BACK_COLOR = 0x0000ff;
 
 interface CardProps {
   frontTexture?: string;
@@ -33,27 +40,62 @@ export function Card({
     height,
   });
 
+  const [
+    colorFrontMap,
+    roughnessFrontMap,
+    colorBackMap,
+    normalBackMap,
+    roughnessBackMap,
+  ] = useTexture([
+    colorFrontImg,
+    roughnessFrontImg,
+    colorBackImg,
+    normalBackImg,
+    roughnessBackImg,
+  ]);
+
+  colorFrontMap.colorSpace = THREE.SRGBColorSpace;
+  colorBackMap.colorSpace = THREE.SRGBColorSpace;
+
+  const thicknessFrontMap = useMemo(() => {
+    const t = colorFrontMap.clone();
+    t.colorSpace = THREE.NoColorSpace;
+    t.needsUpdate = true;
+
+    return t;
+  }, [colorFrontMap]);
+
   return (
     <>
-      <pointLight ref={glareRef} visible={false} color={"white"} />
+      <pointLight ref={glareRef} visible={false} color={"white"} decay={1} />
 
       <group ref={pivotRef}>
         <group ref={cardRef}>
           <mesh geometry={geometry}>
-            <meshStandardMaterial
-              color={FALLBACK_FRONT_COLOR}
+            <meshPhysicalMaterial
+              map={colorFrontMap}
+              normalMap={thicknessFrontMap}
+              normalScale={[0.3, 0.3]}
+              roughnessMap={roughnessFrontMap}
               side={THREE.FrontSide}
-              roughness={0.6}
-              metalness={0.1}
+              metalness={0}
+              roughness={0.08}
+              iridescence={1}
+              iridescenceIOR={1.3}
+              iridescenceThicknessMap={thicknessFrontMap}
+              iridescenceThicknessRange={[100, 800]}
             />
           </mesh>
 
           <mesh geometry={geometry} position={[0, 0, -GAP]}>
-            <meshStandardMaterial
-              color={FALLBACK_BACK_COLOR}
+            <meshPhysicalMaterial
+              map={colorBackMap}
+              normalMap={normalBackMap}
+              roughnessMap={roughnessBackMap}
               side={THREE.BackSide}
-              roughness={0.7}
-              metalness={0.1}
+              metalness={0.6}
+              anisotropy={1}
+              anisotropyRotation={0}
             />
           </mesh>
         </group>

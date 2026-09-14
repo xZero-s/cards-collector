@@ -7,8 +7,8 @@ const LERP_SPEED = 0.05;
 const REFERENCE_FPS = 120;
 const DRAG_SPEED = 0.01;
 const SWIPE_TRESHOLD = 150;
-const GLARE_DISTANCE = 0.5;
-const GLARE_INTENSITY = 0.3;
+const GLARE_DISTANCE = 1.2;
+const GLARE_INTENSITY = 0.8;
 
 interface CardTiltProps {
   width: number;

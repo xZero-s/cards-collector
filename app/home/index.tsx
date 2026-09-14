@@ -1,4 +1,5 @@
 import { Canvas } from "@react-three/fiber";
+import { Suspense } from "react";
 import { Card } from "~/components/Card/Card";
 
 const WIDTH = 1.4;
@@ -14,7 +15,9 @@ export function HomePage() {
       >
         <ambientLight intensity={0.9} />
 
-        <Card width={WIDTH} height={HEIGHT} radius={RADIUS} />
+        <Suspense fallback={null}>
+          <Card width={WIDTH} height={HEIGHT} radius={RADIUS} />
+        </Suspense>
       </Canvas>
     </main>
   );
