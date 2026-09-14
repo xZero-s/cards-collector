@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { useCard } from "./hooks/useCard";
-import { useCardTilt } from "./hooks/useCardInteractions";
+import { useCardInteractions } from "./hooks/useCardInteractions";
 import { useTexture } from "@react-three/drei";
 
 import colorFrontImg from "./textures/onyx/onyx_color.webp";
@@ -35,7 +35,7 @@ export function Card({
     height,
     radius,
   });
-  const { pivotRef, cardRef, glareRef, handlers } = useCardTilt({
+  const { pivotRef, cardRef, glareRef, handlers } = useCardInteractions({
     width,
     height,
   });

@@ -25,7 +25,7 @@ function captureTarget(e: ThreeEvent<PointerEvent>) {
   return e.target as unknown as PointerCaptureTarget;
 }
 
-export function useCardTilt({ width, height }: CardTiltProps) {
+export function useCardInteractions({ width, height }: CardTiltProps) {
   const pivotRef = useRef<THREE.Group>(null);
   const cardRef = useRef<THREE.Group>(null);
   const uvRef = useRef<THREE.Vector2>(new THREE.Vector2());
